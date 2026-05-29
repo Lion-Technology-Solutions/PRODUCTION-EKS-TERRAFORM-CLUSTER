@@ -1,0 +1,28 @@
+aws_region      = "us-east-1"
+cluster_name    = "liontech"
+cluster_version = "1.30"
+environment     = "production"
+
+vpc_cidr             = "10.50.0.0/16"
+public_subnet_cidrs  = ["10.50.0.0/20", "10.50.16.0/20", "10.50.32.0/20"]
+private_subnet_cidrs = ["10.50.64.0/20", "10.50.80.0/20", "10.50.96.0/20"]
+
+node_subnet_type       = "public"
+node_instance_types    = ["t3.medium", "t3.large"]
+node_capacity_type     = "ON_DEMAND"
+node_desired_size      = 3
+node_min_size          = 2
+node_max_size          = 8
+enable_nat_gateway     = true
+single_nat_gateway     = false
+
+allowed_nodeport_cidrs                = ["0.0.0.0/0"]
+cluster_endpoint_public_access_cidrs  = ["0.0.0.0/0"]
+enable_autoscaling_addons             = true
+enable_vertical_pod_autoscaler        = false
+
+tags = {
+  CostCenter = "liontech-devops"
+  Repository = "PRODUCTION-EKS-TERRAFORM-CLUSTER"
+}
+
