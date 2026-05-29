@@ -16,6 +16,7 @@ It includes:
 - Jenkinsfile to create/update the cluster.
 - Jenkinsfile.destroy to destroy the cluster safely.
 - Example NodePort application with a HorizontalPodAutoscaler.
+- Rancher Deployment manifest exposed with a NodePort service in `rancher-nodeport/`.
 
 ## Repository Layout
 
@@ -27,6 +28,7 @@ It includes:
 ├── environments/prod/prod.tfvars.example
 ├── iam-policies/
 ├── manifests/nodeport-hpa-example.yaml
+├── rancher-nodeport/rancher-deployment-nodeport.yaml
 ├── modules/
 │   ├── autoscaling/
 │   ├── eks/
@@ -153,4 +155,3 @@ Metrics Server is installed so Kubernetes Horizontal Pod Autoscaler can scale ap
 ## Important Security Notes
 
 This repository intentionally enables internet NodePort access because the training requirement asks for NodePort application access. For a stricter production pattern, use private worker nodes and expose applications through AWS Load Balancer Controller with an ALB or NLB instead of public NodePort access.
-
