@@ -134,7 +134,7 @@ Do not use a plain one-step `terraform destroy` for this repo while Helm add-ons
 Linux or macOS:
 
 ```bash
-AUTO_APPROVE=true ./scripts/destroy.sh
+AUTO_APPROVE=true sh scripts/destroy.sh
 ```
 
 Windows PowerShell:
@@ -159,7 +159,7 @@ If the cluster is already gone or the EKS API is unreachable, remove the Helm re
 Linux or macOS:
 
 ```bash
-AUTO_APPROVE=true FORCE_REMOVE_UNREACHABLE_HELM_STATE=true ./scripts/destroy.sh
+AUTO_APPROVE=true FORCE_REMOVE_UNREACHABLE_HELM_STATE=true sh scripts/destroy.sh
 ```
 
 Windows PowerShell:
