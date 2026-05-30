@@ -16,6 +16,7 @@ pipeline {
     string(name: 'TF_STATE_DYNAMODB_TABLE', defaultValue: 'liontech-production-terraform-locks', description: 'DynamoDB lock table')
     string(name: 'TFVARS_FILE', defaultValue: 'environments/prod/prod.tfvars', description: 'Terraform tfvars file in the repository')
     booleanParam(name: 'CONFIRM_DESTROY', defaultValue: false, description: 'Must be checked to destroy the liontech EKS cluster')
+    booleanParam(name: 'FORCE_REMOVE_UNREACHABLE_HELM_STATE', defaultValue: false, description: 'Only use when the EKS cluster is already deleted or unreachable; removes Helm releases from Terraform state before destroy')
   }
 
   environment {
@@ -56,6 +57,61 @@ pipeline {
       }
     }
 
+    stage('Manual Approval') {
+      steps {
+        input message: 'Destroy the production liontech EKS cluster and all managed infrastructure?', ok: 'Destroy'
+      }
+    }
+
+    stage('Remove Unreachable Helm State') {
+      when {
+        expression { return params.FORCE_REMOVE_UNREACHABLE_HELM_STATE }
+      }
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
+          sh """
+            HELM_STATE="\$(terraform state list | grep '^module.autoscaling.helm_release' || true)"
+            if [ -n "\$HELM_STATE" ]; then
+              echo "\$HELM_STATE" | while read -r address; do
+                terraform state rm "\$address"
+              done
+            else
+              echo "No Helm release resources found in Terraform state."
+            fi
+          """
+        }
+      }
+    }
+
+    stage('Destroy Kubernetes Add-ons First') {
+      when {
+        expression { return !params.FORCE_REMOVE_UNREACHABLE_HELM_STATE }
+      }
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
+          sh """
+            VAR_FILE_ARG=""
+            if [ -f "${params.TFVARS_FILE}" ]; then
+              VAR_FILE_ARG="-var-file=${params.TFVARS_FILE}"
+            fi
+
+            HELM_STATE="\$(terraform state list | grep '^module.autoscaling.helm_release' || true)"
+            if [ -n "\$HELM_STATE" ]; then
+              TARGET_ARGS=""
+              for address in \$HELM_STATE; do
+                TARGET_ARGS="\$TARGET_ARGS -target=\$address"
+              done
+
+              echo "Destroying Helm-managed Kubernetes add-ons before deleting EKS..."
+              terraform destroy -auto-approve \$VAR_FILE_ARG \$TARGET_ARGS
+            else
+              echo "No Helm release resources found in Terraform state."
+            fi
+          """
+        }
+      }
+    }
+
     stage('Terraform Destroy Plan') {
       steps {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
@@ -67,12 +123,6 @@ pipeline {
             fi
           """
         }
-      }
-    }
-
-    stage('Manual Approval') {
-      steps {
-        input message: 'Destroy the production liontech EKS cluster and all managed infrastructure?', ok: 'Destroy'
       }
     }
 
@@ -91,4 +141,3 @@ pipeline {
     }
   }
 }
-

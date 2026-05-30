@@ -111,6 +111,20 @@ Use `Jenkinsfile.destroy` for cluster teardown. It requires:
 - `CONFIRM_DESTROY=true`
 - Manual Jenkins approval before applying the destroy plan.
 
+The destroy pipeline removes Helm-managed Kubernetes add-ons first while the EKS API is still reachable, then destroys the AWS infrastructure. This avoids the common Terraform error:
+
+```text
+Kubernetes cluster unreachable: invalid configuration: no configuration has been provided
+```
+
+If the cluster was already deleted or the Kubernetes API is permanently unreachable, rerun the destroy job with:
+
+```text
+FORCE_REMOVE_UNREACHABLE_HELM_STATE=true
+```
+
+That option removes only `module.autoscaling.helm_release.*` entries from Terraform state so the remaining AWS resources can be destroyed. Use it only after confirming the cluster cannot remove those Helm releases normally.
+
 ## NodePort Application Access
 
 The module is configured so NodePort applications are reachable from the internet by default:
