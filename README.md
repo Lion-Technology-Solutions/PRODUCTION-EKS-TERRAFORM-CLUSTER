@@ -29,6 +29,8 @@ It includes:
 ├── iam-policies/
 ├── manifests/nodeport-hpa-example.yaml
 ├── rancher-nodeport/rancher-deployment-nodeport.yaml
+├── scripts/destroy.ps1
+├── scripts/destroy.sh
 ├── modules/
 │   ├── autoscaling/
 │   ├── eks/
@@ -124,6 +126,56 @@ FORCE_REMOVE_UNREACHABLE_HELM_STATE=true
 ```
 
 That option removes only `module.autoscaling.helm_release.*` entries from Terraform state so the remaining AWS resources can be destroyed. Use it only after confirming the cluster cannot remove those Helm releases normally.
+
+## Manual Command-Line Destroy
+
+Do not use a plain one-step `terraform destroy` for this repo while Helm add-ons are managed by Terraform. Destroy the Helm add-ons first, then destroy the AWS resources.
+
+Linux or macOS:
+
+```bash
+AUTO_APPROVE=true ./scripts/destroy.sh
+```
+
+Windows PowerShell:
+
+```powershell
+.\scripts\destroy.ps1 -AutoApprove
+```
+
+If you prefer to run the commands yourself:
+
+```bash
+terraform state list | grep '^module.autoscaling.helm_release'
+terraform destroy -auto-approve \
+  -target='module.autoscaling.helm_release.metrics_server[0]' \
+  -target='module.autoscaling.helm_release.cluster_autoscaler[0]'
+terraform plan -destroy -out=destroy.tfplan
+terraform apply -auto-approve destroy.tfplan
+```
+
+If the cluster is already gone or the EKS API is unreachable, remove the Helm releases from Terraform state first and skip Kubernetes provider configuration during the final destroy:
+
+Linux or macOS:
+
+```bash
+AUTO_APPROVE=true FORCE_REMOVE_UNREACHABLE_HELM_STATE=true ./scripts/destroy.sh
+```
+
+Windows PowerShell:
+
+```powershell
+.\scripts\destroy.ps1 -AutoApprove -ForceRemoveUnreachableHelmState
+```
+
+Equivalent manual recovery commands:
+
+```bash
+terraform state rm 'module.autoscaling.helm_release.metrics_server[0]'
+terraform state rm 'module.autoscaling.helm_release.cluster_autoscaler[0]'
+terraform plan -destroy -var='configure_kubernetes_provider=false' -out=destroy.tfplan
+terraform apply -auto-approve destroy.tfplan
+```
 
 ## NodePort Application Access
 

@@ -167,6 +167,12 @@ variable "enable_autoscaling_addons" {
   default     = true
 }
 
+variable "configure_kubernetes_provider" {
+  description = "Configure Kubernetes and Helm providers from the EKS cluster endpoint. Set false only for destroy recovery after Helm releases are removed from Terraform state and the cluster is already unreachable."
+  type        = bool
+  default     = true
+}
+
 variable "cluster_autoscaler_chart_version" {
   description = "Helm chart version for Cluster Autoscaler."
   type        = string
@@ -202,4 +208,3 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
-

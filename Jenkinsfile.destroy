@@ -116,10 +116,15 @@ pipeline {
       steps {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
           sh """
+            KUBERNETES_PROVIDER_ARG=""
+            if [ "${params.FORCE_REMOVE_UNREACHABLE_HELM_STATE}" = "true" ]; then
+              KUBERNETES_PROVIDER_ARG="-var=configure_kubernetes_provider=false"
+            fi
+
             if [ -f "${params.TFVARS_FILE}" ]; then
-              terraform plan -destroy -var-file="${params.TFVARS_FILE}" -out=destroy.tfplan
+              terraform plan -destroy -var-file="${params.TFVARS_FILE}" \$KUBERNETES_PROVIDER_ARG -out=destroy.tfplan
             else
-              terraform plan -destroy -out=destroy.tfplan
+              terraform plan -destroy \$KUBERNETES_PROVIDER_ARG -out=destroy.tfplan
             fi
           """
         }
